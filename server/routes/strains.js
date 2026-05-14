@@ -12,7 +12,7 @@ const callOpenRouterAI = async (systemPrompt, userMessage) => {
       'HTTP-Referer': 'http://localhost:3000',
     },
     body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL,
+      model: 'anthropic/claude-3-5-sonnet-20241022',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
@@ -31,6 +31,7 @@ router.post('/ai-analyze', async (req, res) => {
     const systemPrompt = `You are a microbial genetics and strain engineering expert specializing in precision fermentation organisms (Pichia pastoris, E. coli, Aspergillus, Trichoderma, etc.). Recommend strain modifications, genetic engineering strategies, and selection approaches to improve product yield, growth rate, and robustness for industrial fermentation.`;
     const userMessage = prompt || `Analyze this strain data and recommend modifications for better yield: ${JSON.stringify(context)}`;
     const analysis = await callOpenRouterAI(systemPrompt, userMessage);
+    pool.query('INSERT INTO ai_analyses (user_id, endpoint, process_id, result) VALUES ($1,$2,$3,$4)', [req.user?.id, 'strains/ai-analyze', context?.id || null, analysis]).catch(() => {});
     res.json({ analysis });
   } catch (err) {
     console.error('AI analyze error:', err);
@@ -40,8 +41,15 @@ router.post('/ai-analyze', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM strains ORDER BY created_at DESC');
-    res.json(result.rows);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const [rows, count] = await Promise.all([
+      pool.query('SELECT * FROM strains ORDER BY created_at DESC LIMIT $1 OFFSET $2', [limit, offset]),
+      pool.query('SELECT COUNT(*) FROM strains'),
+    ]);
+    const total = parseInt(count.rows[0].count);
+    res.json({ data: rows.rows, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

@@ -12,7 +12,7 @@ const callOpenRouterAI = async (systemPrompt, userMessage) => {
       'HTTP-Referer': 'http://localhost:3000',
     },
     body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL,
+      model: 'anthropic/claude-3-5-sonnet-20241022',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
@@ -31,6 +31,7 @@ router.post('/ai-analyze', async (req, res) => {
     const systemPrompt = `You are a fermentation production scheduling and operations expert. Optimize batch scheduling considering bioreactor availability, staff allocation, media preparation lead times, turnaround cleaning times, and production priorities. Minimize downtime and maximize facility utilization.`;
     const userMessage = prompt || `Optimize this batch schedule: ${JSON.stringify(context)}`;
     const analysis = await callOpenRouterAI(systemPrompt, userMessage);
+    pool.query('INSERT INTO ai_analyses (user_id, endpoint, process_id, result) VALUES ($1,$2,$3,$4)', [req.user?.id, 'batches/ai-analyze', context?.id || null, analysis]).catch(() => {});
     res.json({ analysis });
   } catch (err) {
     res.status(500).json({ error: 'AI analysis failed' });
@@ -39,8 +40,15 @@ router.post('/ai-analyze', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM batch_schedules ORDER BY created_at DESC');
-    res.json(result.rows);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const [rows, count] = await Promise.all([
+      pool.query('SELECT * FROM batch_schedules ORDER BY created_at DESC LIMIT $1 OFFSET $2', [limit, offset]),
+      pool.query('SELECT COUNT(*) FROM batch_schedules'),
+    ]);
+    const total = parseInt(count.rows[0].count);
+    res.json({ data: rows.rows, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

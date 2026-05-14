@@ -12,7 +12,7 @@ const callOpenRouterAI = async (systemPrompt, userMessage) => {
       'HTTP-Referer': 'http://localhost:3000',
     },
     body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL,
+      model: 'anthropic/claude-3-5-sonnet-20241022',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
@@ -31,6 +31,7 @@ router.post('/ai-analyze', async (req, res) => {
     const systemPrompt = `You are a fermentation recipe development expert. Optimize fermentation recipes including strain-media pairing, process parameter selection, feeding strategies, induction timing, and step-by-step protocol design. Consider batch, fed-batch, and continuous fermentation modes.`;
     const userMessage = prompt || `Optimize this fermentation recipe: ${JSON.stringify(context)}`;
     const analysis = await callOpenRouterAI(systemPrompt, userMessage);
+    pool.query('INSERT INTO ai_analyses (user_id, endpoint, process_id, result) VALUES ($1,$2,$3,$4)', [req.user?.id, 'recipes/ai-analyze', context?.id || null, analysis]).catch(() => {});
     res.json({ analysis });
   } catch (err) {
     res.status(500).json({ error: 'AI analysis failed' });

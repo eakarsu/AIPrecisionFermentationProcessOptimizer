@@ -19,6 +19,9 @@ import {
   FiMenu,
   FiX,
   FiUser,
+  FiRadio,
+  FiClock,
+  FiBarChart2,
 } from 'react-icons/fi';
 
 const navSections = [
@@ -62,7 +65,19 @@ const navSections = [
   },
 ];
 
-const aiItem = { to: '/ai-center', icon: FiZap, label: 'AI Center' };
+const aiItems = [
+  { to: '/ai-center', icon: FiZap, label: 'AI Center' },
+  { to: '/ai-history', icon: FiClock, label: 'AI History' },
+  { to: '/telemetry', icon: FiRadio, label: 'Telemetry' },
+  { to: '/sensor-dashboard', icon: FiActivity, label: 'Sensor Dashboard' },
+  { to: '/optimization', icon: FiTrendingUp, label: 'AI Optimization' },
+  { to: '/contamination-risk', icon: FiAlertTriangle, label: 'Contamination Risk' },
+  { to: '/yield-prediction', icon: FiTrendingUp, label: 'Yield Predictor' },
+  { to: '/sop-generator', icon: FiCheckCircle, label: 'SOP Generator' },
+  { to: '/batch-comparison', icon: FiDatabase, label: 'Batch Compare' },
+  { to: '/strain-performance-predict', icon: FiTrendingUp, label: 'Strain Predict' },
+  { to: '/quality-anomaly-detect', icon: FiAlertTriangle, label: 'QC Anomaly' },
+];
 
 function Sidebar({ user, onLogout }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -135,17 +150,20 @@ function Sidebar({ user, onLogout }) {
             </div>
           ))}
 
-          {/* AI Center with special styling */}
+          {/* AI Tools section */}
           <div className="sidebar-section">
             <span className="sidebar-section-label">AI TOOLS</span>
-            <Link
-              to={aiItem.to}
-              className={`sidebar-link sidebar-link--ai ${isActive(aiItem.to) ? 'sidebar-link--active' : ''}`}
-              onClick={closeMobile}
-            >
-              <FiZap size={18} />
-              <span>{aiItem.label}</span>
-            </Link>
+            {aiItems.map(item => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`sidebar-link sidebar-link--ai ${isActive(item.to) ? 'sidebar-link--active' : ''}`}
+                onClick={closeMobile}
+              >
+                <item.icon size={18} />
+                <span>{item.label}</span>
+              </Link>
+            ))}
           </div>
         </nav>
 

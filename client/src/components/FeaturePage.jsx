@@ -15,14 +15,31 @@ export default function FeaturePage({ title, apiPath, fields, cardRender, aiProm
   const [modalOpen, setModalOpen] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const LIMIT = 20;
   const { showToast } = useToast();
 
-  const fetchItems = async () => {
+  const fetchItems = async (p = 1) => {
     try {
       setLoading(true);
-      const data = await api.get(apiPath);
-      setItems(data);
-      setFiltered(data);
+      const data = await api.get(`${apiPath}?page=${p}&limit=${LIMIT}`);
+      // Handle both paginated { data, total, totalPages } and plain array responses
+      if (data && Array.isArray(data.data)) {
+        setItems(data.data);
+        setFiltered(data.data);
+        setTotal(data.total || data.data.length);
+        setTotalPages(data.totalPages || 1);
+        setPage(p);
+      } else {
+        const arr = Array.isArray(data) ? data : [];
+        setItems(arr);
+        setFiltered(arr);
+        setTotal(arr.length);
+        setTotalPages(1);
+        setPage(1);
+      }
     } catch (err) {
       showToast('Failed to load data', 'error');
     } finally {
@@ -30,7 +47,7 @@ export default function FeaturePage({ title, apiPath, fields, cardRender, aiProm
     }
   };
 
-  useEffect(() => { fetchItems(); }, [apiPath]);
+  useEffect(() => { fetchItems(1); }, [apiPath]);
 
   useEffect(() => {
     if (!search) { setFiltered(items); return; }
@@ -61,7 +78,7 @@ export default function FeaturePage({ title, apiPath, fields, cardRender, aiProm
         await api.put(`${apiPath}/${formData.id}`, formData);
         showToast('Item updated successfully', 'success');
       }
-      fetchItems();
+      fetchItems(page);
     } catch (err) {
       showToast('Failed to save', 'error');
     }
@@ -71,7 +88,7 @@ export default function FeaturePage({ title, apiPath, fields, cardRender, aiProm
     try {
       await api.delete(`${apiPath}/${id}`);
       showToast('Item deleted', 'success');
-      fetchItems();
+      fetchItems(page);
     } catch (err) {
       showToast('Failed to delete', 'error');
     }
@@ -147,6 +164,31 @@ export default function FeaturePage({ title, apiPath, fields, cardRender, aiProm
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pagination-controls" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16 }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => fetchItems(page - 1)}
+            disabled={page === 1}
+            style={{ padding: '6px 12px', fontSize: 13 }}
+          >
+            &larr; Prev
+          </button>
+          <span style={{ fontSize: 13, color: '#6b7280' }}>
+            Page {page} of {totalPages} ({total} total)
+          </span>
+          <button
+            className="btn btn-secondary"
+            onClick={() => fetchItems(page + 1)}
+            disabled={page === totalPages}
+            style={{ padding: '6px 12px', fontSize: 13 }}
+          >
+            Next &rarr;
+          </button>
         </div>
       )}
 

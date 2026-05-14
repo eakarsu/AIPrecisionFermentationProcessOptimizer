@@ -12,7 +12,7 @@ const callOpenRouterAI = async (systemPrompt, userMessage) => {
       'HTTP-Referer': 'http://localhost:3000',
     },
     body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL,
+      model: 'anthropic/claude-3-5-sonnet-20241022',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
@@ -32,6 +32,10 @@ router.post('/ai-analyze', async (req, res) => {
     const systemPrompt = `You are an expert fermentation process engineer specializing in precision fermentation for food proteins, enzymes, and vitamins. Analyze fermentation process parameters and suggest optimizations for yield, efficiency, and quality. Consider temperature, pH, dissolved oxygen, agitation, substrate feeding strategies, and organism-specific requirements.`;
     const userMessage = prompt || `Analyze these fermentation process parameters and suggest optimizations: ${JSON.stringify(context)}`;
     const analysis = await callOpenRouterAI(systemPrompt, userMessage);
+    pool.query(
+      'INSERT INTO ai_analyses (user_id, endpoint, process_id, result) VALUES ($1,$2,$3,$4)',
+      [req.user?.id, 'processes/ai-analyze', context?.id || null, analysis]
+    ).catch(() => {});
     res.json({ analysis });
   } catch (err) {
     console.error('AI analyze error:', err);
@@ -42,8 +46,15 @@ router.post('/ai-analyze', async (req, res) => {
 // GET /api/processes
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM fermentation_processes ORDER BY created_at DESC');
-    res.json(result.rows);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const [rows, count] = await Promise.all([
+      pool.query('SELECT * FROM fermentation_processes ORDER BY created_at DESC LIMIT $1 OFFSET $2', [limit, offset]),
+      pool.query('SELECT COUNT(*) FROM fermentation_processes'),
+    ]);
+    const total = parseInt(count.rows[0].count);
+    res.json({ data: rows.rows, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     console.error('Error fetching processes:', err);
     res.status(500).json({ error: 'Server error' });

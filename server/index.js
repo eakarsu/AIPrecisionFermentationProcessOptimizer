@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import path from 'path';
 import jwt from 'jsonwebtoken';
@@ -19,6 +20,8 @@ import batchesRoutes from './routes/batches.js';
 import costsRoutes from './routes/costs.js';
 import complianceRoutes from './routes/compliance.js';
 import aiRoutes from './routes/ai.js';
+import telemetryRoutes from './routes/telemetry.js';
+import sensorDataRoutes from './routes/sensorData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,8 +31,11 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
 
+// Security middleware
+app.use(helmet());
+
 // Middleware
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 
 // JWT Auth middleware - skip for auth routes
@@ -70,6 +76,8 @@ app.use('/api/batches', batchesRoutes);
 app.use('/api/costs', costsRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/telemetry', telemetryRoutes);
+app.use('/api/fermentation-batches', sensorDataRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -84,6 +92,27 @@ app.use((err, req, res, next) => {
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 });
+
+
+// === Custom Feature Mounts (batch_06) ===
+import('./routes/customFeat01_AgenticProcessOptimization.js').then(m => app.use('/api/cf-agentic-process-optimization', m.default));
+import('./routes/customFeat02_ContaminationRiskEarlyWarning.js').then(m => app.use('/api/cf-contamination-risk-early-warning', m.default));
+import('./routes/customFeat03_ScaleUpProtocolGenerator.js').then(m => app.use('/api/cf-scale-up-protocol-generator', m.default));
+import('./routes/customFeat04_MediaOptimizationEnsemble.js').then(m => app.use('/api/cf-media-optimization-ensemble', m.default));
+import('./routes/customFeat05_CrossBatchLearning.js').then(m => app.use('/api/cf-cross-batch-learning', m.default));
+
+
+// === Batch 06 Gaps & Frontend Mounts ===
+app.use('/api/gap-strains-without-strain', require('./routes/gapFeat_strains_without_strain'));
+app.use('/api/gap-quality-without-quality', require('./routes/gapFeat_quality_without_quality'));
+app.use('/api/gap-costs-without-cost', require('./routes/gapFeat_costs_without_cost'));
+app.use('/api/gap-no-real-scada-industrial-iot-integration-only-manu', require('./routes/gapFeat_no_real_scada_industrial_iot_integration_only_manu'));
+app.use('/api/gap-no-integration-with-analytical-labs-hplc-mass-spec', require('./routes/gapFeat_no_integration_with_analytical_labs_hplc_mass_spec'));
+app.use('/api/gap-no-integration-with-downstream-processing-purifica', require('./routes/gapFeat_no_integration_with_downstream_processing_purifica'));
+app.use('/api/gap-limited-regulatory-documentation-cgmp-fda-complian', require('./routes/gapFeat_limited_regulatory_documentation_cgmp_fda_complian'));
+app.use('/api/gap-no-webhooks-for-alert-delivery', require('./routes/gapFeat_no_webhooks_for_alert_delivery'));
+app.use('/api/gap-no-mobile-app-for-operators', require('./routes/gapFeat_no_mobile_app_for_operators'));
+app.use('/api/gap-limited-notifications-layer', require('./routes/gapFeat_limited_notifications_layer'));
 
 app.listen(PORT, () => {
   console.log(`Fermentation Optimizer API running on port ${PORT}`);

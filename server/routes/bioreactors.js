@@ -12,7 +12,7 @@ const callOpenRouterAI = async (systemPrompt, userMessage) => {
       'HTTP-Referer': 'http://localhost:3000',
     },
     body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL,
+      model: 'anthropic/claude-3-5-sonnet-20241022',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
@@ -31,6 +31,7 @@ router.post('/ai-analyze', async (req, res) => {
     const systemPrompt = `You are a bioreactor engineering and scale-up specialist. Provide recommendations for bioreactor selection, scale-up strategies (geometric similarity, constant tip speed, constant P/V, constant kLa), equipment sizing, and operational considerations for transitioning from bench to pilot to production scale.`;
     const userMessage = prompt || `Provide scale-up recommendations for: ${JSON.stringify(context)}`;
     const analysis = await callOpenRouterAI(systemPrompt, userMessage);
+    pool.query('INSERT INTO ai_analyses (user_id, endpoint, process_id, result) VALUES ($1,$2,$3,$4)', [req.user?.id, 'bioreactors/ai-analyze', context?.id || null, analysis]).catch(() => {});
     res.json({ analysis });
   } catch (err) {
     res.status(500).json({ error: 'AI analysis failed' });
