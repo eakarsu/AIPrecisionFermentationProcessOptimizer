@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
 import authRoutes from './routes/auth.js';
 import processesRoutes from './routes/processes.js';
@@ -103,16 +105,16 @@ import('./routes/customFeat05_CrossBatchLearning.js').then(m => app.use('/api/cf
 
 
 // === Batch 06 Gaps & Frontend Mounts ===
-app.use('/api/gap-strains-without-strain', require('./routes/gapFeat_strains_without_strain'));
-app.use('/api/gap-quality-without-quality', require('./routes/gapFeat_quality_without_quality'));
-app.use('/api/gap-costs-without-cost', require('./routes/gapFeat_costs_without_cost'));
-app.use('/api/gap-no-real-scada-industrial-iot-integration-only-manu', require('./routes/gapFeat_no_real_scada_industrial_iot_integration_only_manu'));
-app.use('/api/gap-no-integration-with-analytical-labs-hplc-mass-spec', require('./routes/gapFeat_no_integration_with_analytical_labs_hplc_mass_spec'));
-app.use('/api/gap-no-integration-with-downstream-processing-purifica', require('./routes/gapFeat_no_integration_with_downstream_processing_purifica'));
-app.use('/api/gap-limited-regulatory-documentation-cgmp-fda-complian', require('./routes/gapFeat_limited_regulatory_documentation_cgmp_fda_complian'));
-app.use('/api/gap-no-webhooks-for-alert-delivery', require('./routes/gapFeat_no_webhooks_for_alert_delivery'));
-app.use('/api/gap-no-mobile-app-for-operators', require('./routes/gapFeat_no_mobile_app_for_operators'));
-app.use('/api/gap-limited-notifications-layer', require('./routes/gapFeat_limited_notifications_layer'));
+app.use('/api/gap-strains-without-strain', require('./routes/gapFeat_strains_without_strain.cjs'));
+app.use('/api/gap-quality-without-quality', require('./routes/gapFeat_quality_without_quality.cjs'));
+app.use('/api/gap-costs-without-cost', require('./routes/gapFeat_costs_without_cost.cjs'));
+app.use('/api/gap-no-real-scada-industrial-iot-integration-only-manu', require('./routes/gapFeat_no_real_scada_industrial_iot_integration_only_manu.cjs'));
+app.use('/api/gap-no-integration-with-analytical-labs-hplc-mass-spec', require('./routes/gapFeat_no_integration_with_analytical_labs_hplc_mass_spec.cjs'));
+app.use('/api/gap-no-integration-with-downstream-processing-purifica', require('./routes/gapFeat_no_integration_with_downstream_processing_purifica.cjs'));
+app.use('/api/gap-limited-regulatory-documentation-cgmp-fda-complian', require('./routes/gapFeat_limited_regulatory_documentation_cgmp_fda_complian.cjs'));
+app.use('/api/gap-no-webhooks-for-alert-delivery', require('./routes/gapFeat_no_webhooks_for_alert_delivery.cjs'));
+app.use('/api/gap-no-mobile-app-for-operators', require('./routes/gapFeat_no_mobile_app_for_operators.cjs'));
+app.use('/api/gap-limited-notifications-layer', require('./routes/gapFeat_limited_notifications_layer.cjs'));
 
 app.listen(PORT, () => {
   console.log(`Fermentation Optimizer API running on port ${PORT}`);

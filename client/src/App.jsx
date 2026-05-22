@@ -47,6 +47,9 @@ import GapLimitedRegulatoryDocumentationCgmpFdaComplianPage from './pages/GapLim
 import GapNoWebhooksForAlertDeliveryPage from './pages/GapNoWebhooksForAlertDeliveryPage';
 import GapNoMobileAppForOperatorsPage from './pages/GapNoMobileAppForOperatorsPage';
 import GapLimitedNotificationsLayerPage from './pages/GapLimitedNotificationsLayerPage';
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
 function App() {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -93,6 +96,9 @@ function App() {
           <Sidebar user={user} onLogout={handleLogout} />
           <main className="main-content">
             <Routes>
+        <Route path="/codex/custom-viz" element={<CodexCustomVizFeature />} />
+        <Route path="/codex/operations" element={<CodexOperationsFeature />} />
+
               <Route path="/" element={<Dashboard />} />
               <Route path="/processes" element={<ProcessesPage />} />
               <Route path="/strains" element={<StrainsPage />} />
