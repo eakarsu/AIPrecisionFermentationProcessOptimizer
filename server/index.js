@@ -24,11 +24,15 @@ import complianceRoutes from './routes/compliance.js';
 import aiRoutes from './routes/ai.js';
 import telemetryRoutes from './routes/telemetry.js';
 import sensorDataRoutes from './routes/sensorData.js';
+import governanceRouter from './governance/router.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
+const { validateRuntime } = require('./governance/runtime.cjs');
+const { createProviderGate } = require('./governance/providerGate.cjs');
+validateRuntime();
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3001;
@@ -37,8 +41,10 @@ const PORT = process.env.SERVER_PORT || 3001;
 app.use(helmet());
 
 // Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+const allowedOrigins = String(process.env.CORS_ORIGINS || process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((value) => value.trim()).filter(Boolean);
+app.use(cors({ origin: (origin, callback) => !origin || allowedOrigins.includes(origin) ? callback(null, true) : callback(new Error('Origin not allowed by CORS')), credentials: true }));
 app.use(express.json());
+app.use(createProviderGate(['/api/ai', '/api/gap', '/api/cf']));
 
 // JWT Auth middleware - skip for auth routes
 const authMiddleware = (req, res, next) => {
@@ -80,6 +86,7 @@ app.use('/api/compliance', complianceRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/telemetry', telemetryRoutes);
 app.use('/api/fermentation-batches', sensorDataRoutes);
+app.use('/api/governed-fermentation-batches', governanceRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

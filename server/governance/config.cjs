@@ -1,0 +1,26 @@
+module.exports={
+ caseType:'operator_approved_fermentation_batch',initialState:'batch_registered',
+ states:['batch_registered','telemetry_synchronized','lineage_locked','constraints_validated','recommendation_recorded','operator_approved','batch_executing','deviation_hold','aborted','downstream_quality','closed','rollback_recorded'],
+ createRoles:['process_scientist','batch_manager'],assessmentRoles:['process_scientist','quality_reviewer','safety_reviewer','operator'],auditRoles:['batch_manager','quality_reviewer','compliance_auditor'],connectorRoles:['integration_operator','batch_manager'],
+ evidenceKinds:['batch_record_version','recipe_version','strain_lineage','material_lot_manifest','calibration_manifest','telemetry_batch_digest','unit_validation','historian_snapshot','lims_result','constraint_manifest','model_version','historical_replay_report','recommendation_manifest','operator_approval','deviation_record','abort_receipt','downstream_quality_result','electronic_batch_record','rollback_receipt'],
+ requiredSignals:['batchVersion','recipeVersion','strainVersion','materialVersion','calibrationVersion','modelVersion','sourceTimestamp','evaluatedAt','staleAfterSeconds','unitsVerified','safeEnvelopeVerified','uncertaintyBound','contaminationStatus','historicalValidationStatus','policyVersion'],
+ professionalBoundary:'Optimization output is advisory only; it cannot issue bioreactor, SCADA, dosing, temperature, pressure, pH, agitation, gas, harvest, or abort commands and never replaces qualified operators, process engineers, quality, or safety controls.',
+ connectors:[{name:'historian_scada',purpose:'timestamped read-only telemetry and provenance'},{name:'lims',purpose:'signed analytical result references'},{name:'mes_erp',purpose:'batch material and electronic record versions'},{name:'bioreactor_gateway',purpose:'read-only equipment status; control disabled'},{name:'downstream_processing',purpose:'quality and yield receipts'},{name:'quality_compliance',purpose:'review and release receipts'},{name:'notification',purpose:'operator acknowledgement receipts'}],
+ transitions:[
+  {from:'batch_registered',action:'synchronize_telemetry',to:'telemetry_synchronized',roles:['integration_operator','process_scientist'],requiresEvidence:true},
+  {from:'telemetry_synchronized',action:'lock_lineage',to:'lineage_locked',roles:['process_scientist','quality_reviewer'],requiresEvidence:true},
+  {from:'lineage_locked',action:'validate_constraints',to:'constraints_validated',roles:['process_scientist','safety_reviewer'],requiresEvidence:true,dualControl:true},
+  {from:'constraints_validated',action:'record_recommendation',to:'recommendation_recorded',roles:['process_scientist'],requiresEvidence:true},
+  {from:'recommendation_recorded',action:'approve_recommendation',to:'operator_approved',roles:['operator','batch_manager'],requiresEvidence:true,dualControl:true},
+  {from:'operator_approved',action:'record_batch_start',to:'batch_executing',roles:['operator'],requiresEvidence:true,dualControl:true},
+  {from:'batch_executing',action:'open_deviation',to:'deviation_hold',roles:['operator','safety_reviewer','quality_reviewer'],requiresEvidence:true},
+  {from:'deviation_hold',action:'abort_batch',to:'aborted',roles:['operator','batch_manager'],requiresEvidence:true,dualControl:true},
+  {from:'deviation_hold',action:'resume_batch',to:'batch_executing',roles:['safety_reviewer','quality_reviewer'],requiresEvidence:true,dualControl:true},
+  {from:'batch_executing',action:'record_downstream_quality',to:'downstream_quality',roles:['quality_reviewer','process_scientist'],requiresEvidence:true,dualControl:true},
+  {from:'downstream_quality',action:'close_batch',to:'closed',roles:['batch_manager','quality_reviewer'],requiresEvidence:true,dualControl:true},
+  {from:'aborted',action:'record_rollback',to:'rollback_recorded',roles:['batch_manager','quality_reviewer'],requiresEvidence:true,dualControl:true}
+ ],
+ acceptedFixture:{batchVersion:'b1',recipeVersion:'r1',strainVersion:'s1',materialVersion:'m1',calibrationVersion:'c1',modelVersion:'model1',sourceTimestamp:'2026-07-18T10:00:00Z',evaluatedAt:'2026-07-18T10:01:00Z',staleAfterSeconds:300,unitsVerified:true,safeEnvelopeVerified:true,uncertaintyBound:0.05,contaminationStatus:'clear',historicalValidationStatus:'passed',policyVersion:'p1'},
+ readyDisposition:'operator_review_required',holdDisposition:'manual_process_fallback',decisionField:'controlCommand',
+ assess:x=>{const source=Date.parse(x.sourceTimestamp),evaluated=Date.parse(x.evaluatedAt),limit=Number(x.staleAfterSeconds),uncertainty=Number(x.uncertaintyBound);const stale=!Number.isFinite(source)||!Number.isFinite(evaluated)||!Number.isFinite(limit)||limit<=0||evaluated<source||(evaluated-source)/1000>limit;const validUncertainty=Number.isFinite(uncertainty)&&uncertainty>=0&&uncertainty<=0.1;const ready=!stale&&validUncertainty&&x.unitsVerified===true&&x.safeEnvelopeVerified===true&&x.contaminationStatus==='clear'&&x.historicalValidationStatus==='passed';return{disposition:ready?'operator_review_required':'manual_process_fallback',controlCommand:null,stale,uncertaintyBound:validUncertainty?uncertainty:null,versions:{batch:x.batchVersion,recipe:x.recipeVersion,strain:x.strainVersion,material:x.materialVersion,calibration:x.calibrationVersion,model:x.modelVersion}};}
+};
