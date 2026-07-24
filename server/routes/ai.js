@@ -5,48 +5,10 @@ import { body, validationResult } from 'express-validator';
 
 const router = Router();
 
-// Ensure tables exist
-pool.query(`
-  CREATE TABLE IF NOT EXISTS ai_analyses (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER,
-    endpoint VARCHAR(100),
-    process_id INTEGER,
-    result TEXT,
-    result_json JSONB,
-    created_at TIMESTAMP DEFAULT NOW()
-  )
-`).catch(console.error);
-
-pool.query(`
-  CREATE TABLE IF NOT EXISTS ai_results (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER,
-    batch_id INTEGER,
-    endpoint VARCHAR(150),
-    result TEXT,
-    result_json JSONB,
-    created_at TIMESTAMP DEFAULT NOW()
-  )
-`).catch(console.error);
-
-pool.query(`
-  CREATE TABLE IF NOT EXISTS sensor_readings (
-    id SERIAL PRIMARY KEY,
-    batch_id INTEGER NOT NULL,
-    temperature DECIMAL(6,2),
-    ph DECIMAL(5,2),
-    dissolved_oxygen DECIMAL(6,2),
-    pressure DECIMAL(8,3),
-    timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
-    alert_triggered BOOLEAN DEFAULT FALSE,
-    alert_message TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-  )
-`).catch(console.error);
-
 const callOpenRouterAI = async (systemPrompt, userMessage) => {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  if (!process.env.OPENROUTER_API_KEY) throw new Error('OPENROUTER_API_KEY not configured');
+  const baseUrl = (process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
+  const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -64,7 +26,10 @@ const callOpenRouterAI = async (systemPrompt, userMessage) => {
     }),
   });
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || 'No response from AI';
+  if (!response.ok || data.error) throw new Error(data.error?.message || `OpenRouter returned HTTP ${response.status}`);
+  const content = data.choices?.[0]?.message?.content;
+  if (typeof content !== 'string' || !content.trim()) throw new Error('OpenRouter returned an empty response');
+  return content;
 };
 
 function parseAIJson(text) {

@@ -16,6 +16,12 @@ const pool = new pg.Pool({
 async function seed() {
   const client = await pool.connect();
   try {
+    if (process.env.ALLOW_DESTRUCTIVE_SEED !== 'true') {
+      throw new Error('set ALLOW_DESTRUCTIVE_SEED=true to run the destructive demo seed explicitly');
+    }
+    const seedEmail = process.env.SEED_ADMIN_EMAIL;
+    const seedPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (!seedEmail || !seedPassword) throw new Error('SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required');
     await client.query('BEGIN');
 
     // Drop tables in reverse dependency order
@@ -232,16 +238,16 @@ async function seed() {
     `);
 
     // Seed users
-    const hashedPassword = await bcrypt.hash('password123', 10);
+    const hashedPassword = await bcrypt.hash(seedPassword, 10);
     await client.query(`
       INSERT INTO users (email, password, name, role) VALUES
-      ('demo@fermentation.ai', $1, 'Demo User', 'admin'),
+      ($2, $1, 'Runtime Admin', 'admin'),
       ('operator1@fermentation.ai', $1, 'Sarah Chen', 'operator'),
       ('operator2@fermentation.ai', $1, 'Marcus Williams', 'operator'),
       ('scientist1@fermentation.ai', $1, 'Dr. Elena Vasquez', 'scientist'),
       ('scientist2@fermentation.ai', $1, 'Dr. Raj Patel', 'scientist'),
       ('manager@fermentation.ai', $1, 'James Thornton', 'manager')
-    `, [hashedPassword]);
+    `, [hashedPassword, seedEmail]);
 
     // Seed fermentation processes
     await client.query(`
@@ -491,7 +497,7 @@ async function seed() {
 
     await client.query('COMMIT');
     console.log('Database seeded successfully!');
-    console.log('Default user: demo@fermentation.ai / password123');
+    console.log(`Seed admin created for ${seedEmail}`);
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Seed error:', err);

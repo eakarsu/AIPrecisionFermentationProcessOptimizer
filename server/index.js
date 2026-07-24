@@ -48,7 +48,7 @@ app.use(createProviderGate(['/api/ai', '/api/gap', '/api/cf']));
 
 // JWT Auth middleware - skip for auth routes
 const authMiddleware = (req, res, next) => {
-  if (req.path.startsWith('/api/auth')) {
+  if (req.path.startsWith('/api/auth') || req.path === '/api/health') {
     return next();
   }
 

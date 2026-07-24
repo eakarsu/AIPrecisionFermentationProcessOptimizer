@@ -1,5 +1,38 @@
 BEGIN;
 
+CREATE TABLE IF NOT EXISTS ai_analyses (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER,
+  endpoint VARCHAR(100),
+  process_id INTEGER,
+  result TEXT,
+  result_json JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS ai_results (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER,
+  batch_id INTEGER,
+  endpoint VARCHAR(150),
+  result TEXT,
+  result_json JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sensor_readings (
+  id SERIAL PRIMARY KEY,
+  batch_id INTEGER NOT NULL,
+  temperature DECIMAL(6,2),
+  ph DECIMAL(5,2),
+  dissolved_oxygen DECIMAL(6,2),
+  pressure DECIMAL(8,3),
+  timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+  alert_triggered BOOLEAN DEFAULT FALSE,
+  alert_message TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS governed_tenant_memberships (
   tenant_id VARCHAR(128) NOT NULL,
   actor_id VARCHAR(128) NOT NULL,
@@ -144,4 +177,3 @@ BEFORE UPDATE OR DELETE ON governed_events
 FOR EACH ROW EXECUTE FUNCTION reject_governance_history_mutation();
 
 COMMIT;
-
