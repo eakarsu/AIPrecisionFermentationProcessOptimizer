@@ -24,8 +24,8 @@ export default function LoginPage({ onLogin }) {
   };
 
   const fillDemo = () => {
-    setEmail('demo@fermentation.ai');
-    setPassword('password123');
+    setEmail(import.meta.env.VITE_DEMO_EMAIL || '');
+    setPassword(import.meta.env.VITE_DEMO_PASSWORD || '');
   };
 
   return (
