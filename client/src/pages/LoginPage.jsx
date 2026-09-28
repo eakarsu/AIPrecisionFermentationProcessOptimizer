@@ -50,7 +50,7 @@ export default function LoginPage({ onLogin }) {
           </button>
         </form>
         <button className="btn btn-secondary" onClick={fillDemo} style={{ width: '100%', marginTop: '0.75rem' }}>
-          Fill Demo Credentials
+          Auto Fill Demo Credentials
         </button>
       </div>
     </div>
